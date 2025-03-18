@@ -1,0 +1,187 @@
+export const metadata = {
+  title: 'Black Hat Python',
+  description: 'Python programming for Hackers and Pentesters',
+}
+
+# Black Hat Python
+
+This writing is only for my personal notes on the book, nothing official. {{ className: 'lead' }}
+
+---
+
+## Chapter 2: The Network, basics
+
+"The network is and always will be the sexies arena for a hacker."
+
+This chapter will give you some basics on Python networking using the `socket` module. This chapter is the foundation for subsequent chapters in which we will build a host discovery tool, implement cross-platform sniffers, and create a remote trojan framework.
+
+### Socket module
+
+`socket` is the core module for all third-party networked servers and clients tools. This module expose all of the necessary pieces to quickly write TCP and UDP clients and servers, use raw sockets, and so forth.
+
+### TCP Client
+
+Here is a simple TCP client.
+
+<Row>
+  <Col>
+
+    <Properties>
+      <Property name="AF_INET">
+        This parameter is saying we are hoing to use a standard IPv4 address or hostname.
+      </Property>
+      <Property name="SOCK_STREAM">
+        This indicates that this will be a TCP client.
+      </Property>
+      <Property name="client.connect((target_host, target_port))">
+        We connect the client to the server
+      </Property>
+    </Properties>
+
+  </Col>
+  <Col sticky>
+
+```python {{ title: 'Example TCP client in Python 2.7.3' }}
+import socket
+
+target_host = "www.google.com"
+target_port = 80
+
+# create a socket object
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# connect the client
+client.connect((target_host, target_port))
+
+# send some data
+client.send("GET / HTTP/1.1\r\nHost: google.com\r\n\r\n")
+
+# receive some data
+response = client.recv(4096)
+
+print response
+```
+
+  </Col>
+</Row>
+
+This is the simplest form of a TCP client, but the one you will write most often.
+
+In this code snippet, we are making some seious assumptions about sockets:
+
+- The first assumption is that our connection will always succeed.
+
+- The second is that the server is always expecting us to send data first (as opposed to servers that expect to send data to you first and await your response).
+
+- The third assumption is that the server will always send us data back in a timely fashion.
+
+### UDP Client
+
+A python UDP client is not much different than a TCP client; we need make only two small changes to get it to send packets in UDP form.
+
+<Row>
+  <Col>
+
+    <Properties>
+      <Property name="SOCK_DGRAM">
+        Socket use datagram-based protocol
+      </Property>
+      <Property name="client.sendto(data,(host, port))">
+        We pass the data and the server we want send the data because UDP is a connectionless protocol, there is no call to `connect()` beforehand.
+      </Property>
+      <Property name="client.recvfrom(4096)">
+        Called to receive UDP data back, You will also notice that it returns both the data and the details of the remote host and port.
+      </Property>
+    </Properties>
+
+  </Col>
+  <Col sticky>
+
+```python {{ title: 'Example UDP client in Python 2.7.3' }}
+import socket
+
+target_host = "www.google.com"
+target_port = 80
+
+# create a socket object
+client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+# send some data
+client.sendto("AABBCC", (target_host, target_port))
+
+# receive some data
+data, addr = client.recvfrom(4096)
+
+print data
+```
+
+  </Col>
+</Row>
+
+We're not looking to be superior network programmers; we want to be quick, easy adn reliable enough to handle our day-to-day hacking tasks.
+
+### TCP Server
+
+You might want to use your own TCP server when writing command shells or crafting a proxy (both of which we'll do later). Let's start by creating a standar multi-threaded TCP server.
+
+```python {{ title: 'Example TCP server' }}
+
+import socket
+import threading
+
+bind_ip = "0.0.0.0"
+bind_port = 9999
+
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+server.bind((bind_ip, bind_port))
+
+server.listen(5)
+
+print "[*] Listening on %s:%d" % (bind_ip, bind_port)
+
+# this is our client-handling thread
+def handle_client(client_socket):
+
+  # print out what the client sends
+  request = client_socket.recv(1024)
+
+  # print out what the client sends
+  print "[*] Received: %s" % request
+
+  # send back a packet
+  client_socket.send("ACK!")
+  client_socket.close()
+
+while True:
+  client, addr = server.accept()
+
+  print "[*] Accepted connection from: %s:%d" % (addr[0], addr[1])
+
+  # spin up our client thread to handle incoming data
+  client_handler = threading.Thread(target=handle_client, args=(client,))
+  client_handler.start()
+
+```
+
+<Properties>
+  <Property name="server.bind((bind_ip, bind_port))">
+    We pass the IP address and port we want the server to listen on
+  </Property>
+  <Property name="server.listen(5)">
+    We tell the server to start listening with a maximum backlog of connection
+    set to 5
+  </Property>
+  <Property name="client, addr = server.accept()">
+    When a client connects, we receive the client socket into the `client`
+    variable, and the remote connection details into the `addr` variable.
+  </Property>
+  <Property name="threading.Thread(target=handle_client,args=(client,))">
+    We then create a new thread object that points to our `handle_client`
+    function, and we pass it the client socket object as an argument.
+  </Property>
+</Properties>
+
+That's it! Pretty simple, but this is a very useful piece of code which we will extend in the next couple of sections when we build a netcat replacement and a TCP proxy.
+
+---

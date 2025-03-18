@@ -231,6 +231,10 @@ function NavigationGroup({
 
 export const navigation: Array<NavGroup> = [
   {
+    title: 'Books',
+    links: [{ title: 'Black Hat Python', href: '/black_hat_python' }],
+  },
+  {
     title: 'Guides',
     links: [
       { title: 'Introduction', href: '/' },
